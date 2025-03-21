@@ -24,6 +24,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Command releated to instances
+    Instances {
+        #[command(subcommand)]
+        subcommand: InstanceCommands
+    },
     /// List all available GPU instances
     List,
     /// Start a GPU instance with the specified SSH key
@@ -38,8 +43,6 @@ enum Commands {
         #[arg(short, long)]
         gpu: String,
     },
-    /// List all running GPU instances
-    Running,
     /// Continuously find and start a GPU instance when it becomes available
     Find {
         #[arg(short, long)]
@@ -49,6 +52,12 @@ enum Commands {
         #[arg(short, long, default_value_t = 10)]
         sec: u64,
     },
+}
+
+#[derive(Subcommand)]
+enum InstanceCommands {
+    /// List running instances
+    List,
 }
 
 #[derive(Deserialize, Debug)]
@@ -105,6 +114,11 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
+        Some(Commands::Instances { subcommand }) => match subcommand {
+            InstanceCommands::List => {
+                list_running_instances(&client, &api_key);
+            }
+        },
         Some(Commands::List) => {
             list_instances(&client, &api_key);
         }
@@ -113,9 +127,6 @@ fn main() {
         }
         Some(Commands::Stop { gpu }) => {
             stop_instance(&client, &api_key, gpu);
-        }
-        Some(Commands::Running) => {
-            list_running_instances(&client, &api_key);
         }
         Some(Commands::Find { gpu, ssh, sec }) => {
             find_and_start_instance(&client, &api_key, gpu, ssh, *sec);
