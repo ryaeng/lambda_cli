@@ -34,13 +34,6 @@ enum Commands {
         #[command(subcommand)]
         subcommand: InstanceTypeCommands,
     },
-    /// Start a GPU instance with the specified SSH key
-    Start {
-        #[arg(short, long)]
-        gpu: String,
-        #[arg(short, long)]
-        ssh: String,
-    },
     /// Stop a specified GPU instance
     Stop {
         #[arg(short, long)]
@@ -59,6 +52,13 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum InstanceCommands {
+    /// Launch instances
+    Launch {
+        #[arg(short, long)]
+        gpu: String,
+        #[arg(short, long)]
+        ssh: String,
+    },
     /// List running instances
     List,
 }
@@ -124,6 +124,9 @@ fn main() {
 
     match &cli.command {
         Some(Commands::Instances { subcommand }) => match subcommand {
+            InstanceCommands::Launch { gpu, ssh } => {
+                launch_instance(&client, &api_key, &gpu, &ssh);
+            }
             InstanceCommands::List => {
                 list_running_instances(&client, &api_key);
             }
@@ -133,9 +136,6 @@ fn main() {
                 list_available_instance_types(&client, &api_key);
             }
         },
-        Some(Commands::Start { gpu, ssh }) => {
-            start_instance(&client, &api_key, gpu, ssh);
-        }
         Some(Commands::Stop { gpu }) => {
             stop_instance(&client, &api_key, gpu);
         }
@@ -196,7 +196,7 @@ fn list_available_instance_types(client: &Client, api_key: &str) {
     table.printstd();
 }
 
-fn start_instance(client: &Client, api_key: &str, gpu: &str, ssh: &str) {
+fn launch_instance(client: &Client, api_key: &str, gpu: &str, ssh: &str) {
     if let Some(instance_type_response) = get_instance_type_response(client, api_key, gpu) {
         let region_name = &instance_type_response.regions_with_capacity_available[0].name;
 
@@ -317,7 +317,7 @@ fn find_and_start_instance(client: &Client, api_key: &str, gpu: &str, ssh: &str,
                     .collect();
 
                 println!("Found available {} in region(s): {:?}", gpu, regions);
-                start_instance(client, api_key, gpu, ssh);
+                launch_instance(client, api_key, gpu, ssh);
                 break;
             }
         }
