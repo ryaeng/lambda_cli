@@ -59,6 +59,7 @@ struct ApiResponse<T> {
 #[derive(Deserialize, Debug)]
 struct Instance {
     id: Option<String>,
+    instance_type: Option<InstanceType>,
     status: Option<String>,
     ip: Option<String>,
     ssh_key_names: Option<Vec<String>>,
@@ -77,6 +78,7 @@ struct InstanceTypeResponse {
 
 #[derive(Deserialize, Debug, Clone)]
 struct InstanceType {
+    name: String,
     description: String,
     price_cents_per_hour: i32,
     specs: InstanceSpecs,
@@ -256,11 +258,16 @@ fn list_running_instances(client: &Client, api_key: &str) {
         .expect("Failed to parse response");
 
     let mut table = Table::new();
-    table.add_row(row!["Instance ID", "Status", "IP Address", "SSH Key Names"]);
+    table.add_row(row!["Instance ID", "Type", "Status", "IP Address", "SSH Key Names"]);
 
     for instance in response.data {
         table.add_row(row![
             instance.id.unwrap_or_else(|| "N/A".to_string()).green(),
+            instance.instance_type
+                .as_ref()
+                .map(|it| it.name.clone())
+                .unwrap_or_else(|| "N/A".to_string())
+                .cyan(),
             instance.status.unwrap_or_else(|| "N/A".to_string()).yellow(),
             instance.ip.unwrap_or_else(|| "N/A".to_string()).blue(),
             instance.ssh_key_names.unwrap_or_else(|| vec!["N/A".to_string()]).join(", ").purple()
