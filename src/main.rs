@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use chrono::Local;
 use dotenv::dotenv;
 use crossterm::{execute, terminal::{Clear, ClearType}, cursor::MoveTo};
-use std::io::{stdout, Write};
+use std::io::stdout;
 
 /// Simple program to interact with Lambda Labs GPU cloud
 #[derive(Parser)]
