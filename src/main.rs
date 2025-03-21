@@ -24,13 +24,16 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Command releated to instances
+    /// Commands releated to instances
     Instances {
         #[command(subcommand)]
         subcommand: InstanceCommands
     },
-    /// List all available GPU instances
-    List,
+    /// Commands related to instance types
+    InstanceTypes {
+        #[command(subcommand)]
+        subcommand: InstanceTypeCommands,
+    },
     /// Start a GPU instance with the specified SSH key
     Start {
         #[arg(short, long)]
@@ -57,6 +60,12 @@ enum Commands {
 #[derive(Subcommand)]
 enum InstanceCommands {
     /// List running instances
+    List,
+}
+
+#[derive(Subcommand)]
+enum InstanceTypeCommands {
+    /// List all available instance types
     List,
 }
 
@@ -119,9 +128,11 @@ fn main() {
                 list_running_instances(&client, &api_key);
             }
         },
-        Some(Commands::List) => {
-            list_instances(&client, &api_key);
-        }
+        Some(Commands::InstanceTypes { subcommand }) => match subcommand {
+            InstanceTypeCommands::List => {
+                list_available_instance_types(&client, &api_key);
+            }
+        },
         Some(Commands::Start { gpu, ssh }) => {
             start_instance(&client, &api_key, gpu, ssh);
         }
@@ -151,7 +162,7 @@ fn validate_api_key(client: &Client, api_key: &str) {
     }
 }
 
-fn list_instances(client: &Client, api_key: &str) {
+fn list_available_instance_types(client: &Client, api_key: &str) {
     let url = "https://cloud.lambdalabs.com/api/v1/instance-types";
     let response: ApiResponse<HashMap<String, InstanceTypeResponse>> = client.get(url)
         .header(AUTHORIZATION, format!("Bearer {}", api_key))
