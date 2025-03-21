@@ -34,11 +34,6 @@ enum Commands {
         #[command(subcommand)]
         subcommand: InstanceTypeCommands,
     },
-    /// Stop a specified GPU instance
-    Stop {
-        #[arg(short, long)]
-        gpu: String,
-    },
     /// Continuously find and start a GPU instance when it becomes available
     Find {
         #[arg(short, long)]
@@ -61,6 +56,11 @@ enum InstanceCommands {
     },
     /// List running instances
     List,
+    /// Terminate instances
+    Terminate {
+        #[arg(short, long)]
+        gpu: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -125,10 +125,13 @@ fn main() {
     match &cli.command {
         Some(Commands::Instances { subcommand }) => match subcommand {
             InstanceCommands::Launch { gpu, ssh } => {
-                launch_instance(&client, &api_key, &gpu, &ssh);
+                launch_instances(&client, &api_key, &gpu, &ssh);
             }
             InstanceCommands::List => {
                 list_running_instances(&client, &api_key);
+            }
+            InstanceCommands::Terminate { gpu } => {
+                terminate_instances(&client, &api_key, gpu);
             }
         },
         Some(Commands::InstanceTypes { subcommand }) => match subcommand {
@@ -136,9 +139,6 @@ fn main() {
                 list_available_instance_types(&client, &api_key);
             }
         },
-        Some(Commands::Stop { gpu }) => {
-            stop_instance(&client, &api_key, gpu);
-        }
         Some(Commands::Find { gpu, ssh, sec }) => {
             find_and_start_instance(&client, &api_key, gpu, ssh, *sec);
         }
@@ -196,7 +196,7 @@ fn list_available_instance_types(client: &Client, api_key: &str) {
     table.printstd();
 }
 
-fn launch_instance(client: &Client, api_key: &str, gpu: &str, ssh: &str) {
+fn launch_instances(client: &Client, api_key: &str, gpu: &str, ssh: &str) {
     if let Some(instance_type_response) = get_instance_type_response(client, api_key, gpu) {
         let region_name = &instance_type_response.regions_with_capacity_available[0].name;
 
@@ -255,7 +255,7 @@ fn get_instance_type_response(client: &Client, api_key: &str, gpu: &str) -> Opti
     response.data.get(gpu).cloned()
 }
 
-fn stop_instance(client: &Client, api_key: &str, gpu: &str) {
+fn terminate_instances(client: &Client, api_key: &str, gpu: &str) {
     let url = "https://cloud.lambdalabs.com/api/v1/instance-operations/terminate";
     let payload = serde_json::json!({
         "instance_ids": [gpu]
@@ -317,7 +317,7 @@ fn find_and_start_instance(client: &Client, api_key: &str, gpu: &str, ssh: &str,
                     .collect();
 
                 println!("Found available {} in region(s): {:?}", gpu, regions);
-                launch_instance(client, api_key, gpu, ssh);
+                launch_instances(client, api_key, gpu, ssh);
                 break;
             }
         }
